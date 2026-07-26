@@ -144,8 +144,15 @@ nav button.on{color:var(--accent)}
 /* レシピ詳細 */
 .dt-h{font-size:12px;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:16px 0 6px}
 .dt-h:first-child{margin-top:0}
-.dt-ing{display:flex;flex-wrap:wrap;gap:4px 0}
-.dt-ing div{width:100%;display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;border-bottom:1px dotted var(--line)}
+.dt-hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.jump{
+  font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-w);
+  border-radius:999px;padding:4px 10px;letter-spacing:0;flex-shrink:0;
+}
+.jump:active{opacity:.6}
+/* 材料は「名前＋分量」の短い対なので、幅があれば2列に詰める */
+.dt-ing{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0 18px}
+.dt-ing div{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13.5px;padding:3px 0;border-bottom:1px dotted var(--line)}
 .dt-ing div span:last-child{color:var(--tx2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .dt-steps{margin:0;padding:0;list-style:none;counter-reset:st}
 .dt-steps li{
@@ -1616,7 +1623,8 @@ function openDetail(id){
         return h? {amount:splitIng(h[0]), steps:h.slice(1)}
                 : {amount:[], steps:[]}; })();
 
-  let html = `<div class="dt-h">材料（2人分）</div>`;
+  // 材料が多いと作り方が画面の下に隠れるので、見出しから飛べるようにする
+  let html = `<div class="dt-h dt-hrow">材料（2人分）<button class="jump" data-jump="1">作り方へ ▼</button></div>`;
   if(d.amount.length){
     html += `<div class="dt-ing">` + d.amount.map(a=>{
       // 「はちみつ 大さじ2」は空白で、「鶏もも肉2枚」は数字の手前で分ける
@@ -1633,15 +1641,17 @@ function openDetail(id){
     html += `<div class="hint">${r.ing.map(esc).join("・")}<br>（分量は未登録）</div>`;
   }
 
-  html += `<div class="dt-h">作り方</div>`;
+  html += `<div class="dt-h" id="dtSteps">作り方</div>`;
   html += d.steps.length
     ? `<ol class="dt-steps">${d.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol>`
     : `<div class="hint">作り方は登録されていません。${r.own?"レシピタブの「編集」から書き込めます。":""}</div>`;
 
   if(r.kids) html += `<div class="kids">👶 <b>取り分け</b> ${esc(r.kids)}</div>`;
   if(r.bento) html += `<div class="kids" style="border-left-color:#f59e0b">🍱 <b style="color:#b45309">お弁当</b> 冷めてもおいしく、汁気が少ないので詰めやすい一品です。</div>`;
-  $("#dtBody").innerHTML = html;
+  const box = $("#dtBody");
+  box.innerHTML = html;
   $("#dlgDetail").showModal();
+  box.scrollTop = 0;   // 表示後に戻す（非表示のままだとスクロール位置は変えられない）
 }
 
 /* ==========================================================
@@ -1722,11 +1732,16 @@ function saveRecipe(){
    イベント
    ========================================================== */
 document.addEventListener("click", e=>{
-  const t = e.target.closest("[data-p],[data-o],[data-rr],[data-mt],[data-wrr],[data-fr],[data-fadd],[data-rt],[data-fv],[data-red],[data-rh],[data-mng],[data-mlk],[data-mdel],[data-ip],[data-hr],[data-hd],[data-det],button");
+  const t = e.target.closest("[data-p],[data-o],[data-rr],[data-mt],[data-wrr],[data-fr],[data-fadd],[data-rt],[data-fv],[data-red],[data-rh],[data-mng],[data-mlk],[data-mdel],[data-ip],[data-hr],[data-hd],[data-det],[data-jump],button");
   if(!t) return;
 
   // レシピ詳細を開く（分量と作り方）
   if(t.dataset.det){ openDetail(t.dataset.det); return; }
+  if(t.dataset.jump){
+    const box=$("#dtBody"), h=$("#dtSteps");
+    if(box&&h) box.scrollTo({top:h.offsetTop-8, behavior:"smooth"});
+    return;
+  }
   if(t.id==="dtClose"){ $("#dlgDetail").close(); return; }
   if(t.id==="dtUse"){
     const r=byId(detailId); if(!r) return;
