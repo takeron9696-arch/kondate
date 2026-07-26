@@ -163,9 +163,8 @@ nav button.on{color:var(--accent)}
   background:var(--accent);color:#fff;border-radius:50%;font-size:12px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
 }
-/* 詳細ダイアログは画面の高さいっぱいまで使い、材料が多くても作り方が見えるようにする */
-#dlgDetail[open]{display:flex;flex-direction:column;max-height:90vh}
-#dtBody{flex:1;min-height:0}
+/* 中身の高さは vh で直接決める。
+   flex:1 で伸ばす書き方は Safari で高さが 0 に潰れ、ボタンだけの画面になる */
 .tapme{cursor:pointer}
 .tapme:active{opacity:.6}
 dialog{
@@ -326,7 +325,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <dialog id="dlgDetail">
   <div class="dlg-h" id="dtName"></div>
   <div class="hint" id="dtMeta"></div>
-  <div class="scrollbox" id="dtBody" style="max-height:70vh;margin-top:10px;padding-right:10px"></div>
+  <div class="scrollbox" id="dtBody" style="max-height:58vh;margin-top:10px;padding-right:10px"></div>
   <div class="row" style="margin-top:14px">
     <button class="btn sub" id="dtClose" autofocus>閉じる</button>
     <button class="btn" id="dtUse">今日の献立に入れる</button>
