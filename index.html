@@ -145,7 +145,7 @@ nav button.on{color:var(--accent)}
 .dt-h{font-size:12px;font-weight:700;color:var(--tx2);letter-spacing:.08em;margin:16px 0 6px}
 .dt-h:first-child{margin-top:0}
 .dt-ing{display:flex;flex-wrap:wrap;gap:4px 0}
-.dt-ing div{width:100%;display:flex;justify-content:space-between;gap:10px;font-size:14.5px;padding:5px 0;border-bottom:1px dotted var(--line)}
+.dt-ing div{width:100%;display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;border-bottom:1px dotted var(--line)}
 .dt-ing div span:last-child{color:var(--tx2);font-variant-numeric:tabular-nums;white-space:nowrap}
 .dt-steps{margin:0;padding:0;list-style:none;counter-reset:st}
 .dt-steps li{
@@ -156,6 +156,9 @@ nav button.on{color:var(--accent)}
   background:var(--accent);color:#fff;border-radius:50%;font-size:12px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
 }
+/* 詳細ダイアログは画面の高さいっぱいまで使い、材料が多くても作り方が見えるようにする */
+#dlgDetail[open]{display:flex;flex-direction:column;max-height:90vh}
+#dtBody{flex:1;min-height:0}
 .tapme{cursor:pointer}
 .tapme:active{opacity:.6}
 dialog{
@@ -316,7 +319,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 <dialog id="dlgDetail">
   <div class="dlg-h" id="dtName"></div>
   <div class="hint" id="dtMeta"></div>
-  <div class="scrollbox" id="dtBody" style="max-height:58vh;margin-top:10px;padding-right:10px"></div>
+  <div class="scrollbox" id="dtBody" style="max-height:70vh;margin-top:10px;padding-right:10px"></div>
   <div class="row" style="margin-top:14px">
     <button class="btn sub" id="dtClose" autofocus>閉じる</button>
     <button class="btn" id="dtUse">今日の献立に入れる</button>
