@@ -210,10 +210,11 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   </div>
 </section>
 
-<!-- ============ 週間 ============ -->
+<!-- ============ まとめて（2日〜1週間） ============ -->
 <section class="page" id="p-week">
+  <div class="tabs" id="planDays"></div>
   <div class="row" style="margin-bottom:12px">
-    <button class="btn" id="btnWeek">📅 1週間分をつくる</button>
+    <button class="btn" id="btnWeek"></button>
   </div>
   <div id="weekBody"></div>
 </section>
@@ -274,7 +275,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <nav><div class="inner">
   <button data-p="today" class="on"><span class="ic">🍚</span>今日</button>
-  <button data-p="week"><span class="ic">📅</span>週間</button>
+  <button data-p="week"><span class="ic">📅</span>まとめて</button>
   <button data-p="fridge"><span class="ic">🧊</span>冷蔵庫</button>
   <button data-p="recipe"><span class="ic">📖</span>レシピ</button>
   <button data-p="history"><span class="ic">🕘</span>履歴</button>
@@ -1118,7 +1119,7 @@ Object.assign(HOWTO, {
 const KEY = "kondate-v1";
 const DEF = {
   custom:[], hidden:[], fav:[], members:[], history:[],
-  avoidDays:14, useSeason:true, fridge:[], week:null, shopDone:[],
+  avoidDays:14, useSeason:true, fridge:[], week:null, shopDone:[], planDays:7,
   todayPlan:null, opts:{maxTime:0, genre:"", oneDish:true, easy:false, bento:false, split:false}
 };
 let S = load();
@@ -1331,22 +1332,32 @@ function addSlot(cat,label){
 }
 
 /* 1週間 */
-function genWeek(){
+/* 何日分でも作れる。丼・麺の日は日数に応じて配分する
+   （7日なら2回、3〜5日なら1回、2日なら0回。いずれも後半に置く） */
+function oneDishDays(n){
+  const count = n>=6 ? 2 : n>=3 ? 1 : 0;
+  if(count===0) return new Set();
+  if(count===1) return new Set([n-1]);
+  return new Set([n-3, n-1]);
+}
+
+function genWeek(n){
+  const total = Math.max(1, Math.min(14, n || S.planDays || 7));
   const o = S.opts;
   const days=[]; const recentIng=[]; let prevGenre="";
-  const usedMain=[], usedSide=[], usedSoup=[]; let oneDishCount=0;
+  const usedMain=[], usedSide=[], usedSoup=[];
+  const oneDays = o.oneDish ? oneDishDays(total) : new Set();
   const start = new Date();
-  for(let d=0; d<7; d++){
+  for(let d=0; d<total; d++){
     const date = new Date(start.getTime()+d*86400000).toISOString().slice(0,10);
     const avoidIng = new Set(recentIng.slice(-3));
-    const wantOne = o.oneDish && oneDishCount<2 && (d===4||d===6) ;
+    const wantOne = oneDays.has(d);
     const slots=[];
     const mainCat = wantOne ? "麺・丼" : "主菜";
     const m = pick(mainCat,{...slotOpts(mainCat),avoidIng,avoidGenre:prevGenre},usedMain);
     if(m){
       slots.push({label: wantOne?"主食":"主菜", id:m.id});
       usedMain.push(m.id); recentIng.push(mainIng(m)); prevGenre=m.genre;
-      if(wantOne) oneDishCount++;
     }
     const s = pick("副菜",slotOpts("副菜"),[...usedSide,...slots.map(x=>x.id)]);
     if(s){ slots.push({label:"副菜",id:s.id}); usedSide.push(s.id); }
@@ -1356,6 +1367,7 @@ function genWeek(){
     }
     days.push({date,slots});
   }
+  S.planDays = total;
   S.week={made:today(),days}; S.shopDone=[]; save(); renderWeek();
 }
 
@@ -1417,9 +1429,15 @@ function renderToday(){
 /* ==========================================================
    描画：週間 ＋ 買い物リスト
    ========================================================== */
+const DAY_CHOICES=[2,3,4,7];
 function renderWeek(){
+  const n = S.planDays || 7;
+  $("#planDays").innerHTML = DAY_CHOICES.map(d=>
+    `<button class="chip ${n===d?"on":""}" data-pd="${d}">${d===7?"1週間":d+"日分"}</button>`).join("");
+  $("#btnWeek").textContent = `📅 ${n===7?"1週間":n+"日"}分をつくる`;
+
   const w=S.week, box=$("#weekBody");
-  if(!w){ box.innerHTML=`<div class="empty">ボタンを押すと、主材料とジャンルが続かないように7日分を組みます</div>`; return; }
+  if(!w){ box.innerHTML=`<div class="empty">日数を選んでボタンを押すと、<br>主材料とジャンルが続かないように組みます</div>`; return; }
   let html = `<div class="card">`;
   w.days.forEach((d,di)=>{
     const bento = d.slots.map(s=>byId(s.id)).filter(r=>r&&r.bento);
@@ -1731,7 +1749,7 @@ function saveRecipe(){
    イベント
    ========================================================== */
 document.addEventListener("click", e=>{
-  const t = e.target.closest("[data-p],[data-o],[data-rr],[data-mt],[data-wrr],[data-fr],[data-fadd],[data-rt],[data-fv],[data-red],[data-rh],[data-mng],[data-mlk],[data-mdel],[data-ip],[data-hr],[data-hd],[data-det],[data-jump],button");
+  const t = e.target.closest("[data-p],[data-o],[data-rr],[data-mt],[data-wrr],[data-fr],[data-fadd],[data-rt],[data-fv],[data-red],[data-rh],[data-mng],[data-mlk],[data-mdel],[data-ip],[data-hr],[data-hd],[data-det],[data-jump],[data-pd],button");
   if(!t) return;
 
   // レシピ詳細を開く（分量と作り方）
@@ -1790,6 +1808,7 @@ document.addEventListener("click", e=>{
   }
 
   // 週間
+  if(t.dataset.pd){ S.planDays=+t.dataset.pd; save(); renderWeek(); return; }
   if(t.id==="btnWeek"){ genWeek(); return; }
   if(t.dataset.wrr){
     const [di,si]=t.dataset.wrr.split(",").map(Number);
