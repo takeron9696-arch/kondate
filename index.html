@@ -165,6 +165,17 @@ nav button.on{color:var(--accent)}
 }
 /* 中身の高さは vh で直接決める。
    flex:1 で伸ばす書き方は Safari で高さが 0 に潰れ、ボタンだけの画面になる */
+.hcno{
+  flex-shrink:0;min-width:52px;text-align:center;font-size:14px;font-weight:700;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  background:var(--accent-w);color:var(--accent);border-radius:8px;padding:6px 4px;
+}
+.hcbadge{
+  display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 11px;border-radius:9px;
+  background:var(--accent-w);color:var(--accent);font-size:13px;font-weight:700;line-height:1.5;
+}
+.hcbadge b{font-size:17px;font-variant-numeric:tabular-nums}
+.hcbadge span{font-weight:600;color:var(--tx2)}
 .tapme{cursor:pointer}
 .tapme:active{opacity:.6}
 dialog{
@@ -310,6 +321,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <input type="checkbox" id="rfBento" style="width:20px;height:20px;accent-color:var(--accent)">
     🍱 お弁当のおかずにもなる
   </label>
+  <label class="fl">🍲 ホットクックの料理設定番号（あれば・空欄でOK）</label>
+  <input type="text" id="rfHc" inputmode="numeric" placeholder="例：0001">
   <label class="fl">材料と分量（2人分・1行に1つ、または / で区切る）</label>
   <textarea id="rfAmount" placeholder="鶏もも肉 300g&#10;玉ねぎ 1個&#10;醤油 大さじ2"></textarea>
   <label class="fl">作り方（1行に1手順・番号は自動で付きます）</label>
@@ -691,6 +704,172 @@ const KIDS = {
 "親子丼":"取り分け後、大人は山椒か七味を。",
 "牛丼":"取り分け後、大人は紅しょうがと七味を。"
 };
+
+/* ==========================================================
+   ホットクック KN-HW24H の自動調理メニュー（公式レシピ集より）
+   出典: シャープ公式「KN-HW24H レシピ集」PDF
+   ========================================================== */
+const HOTCOOK=[
+["0001","肉じゃが"],
+["0002","筑前煮"],
+["0003","かぼちゃの煮物"],
+["0004","里いもの煮ころがし"],
+["0005","豚バラ大根"],
+["0006","八宝菜"],
+["0007","チキンと野菜のカレー(無水カレー)"],
+["0008","キーマカレー"],
+["0009","クリームシチュー"],
+["0010","ビーフシチュー"],
+["0011","じゃがいものポタージュ"],
+["0012","おでん"],
+["0013","ポトフ"],
+["0014","ひじきの煮物"],
+["0015","きんぴら"],
+["0017","肉みそ"],
+["0018","黒豆"],
+["0019","アクアパッツァ"],
+["0021","一尾魚の煮つけ"],
+["0022","いわしの梅煮"],
+["0023","いわしの骨までやわらか煮"],
+["0024","おかゆ"],
+["0025","かぼちゃのポタージュ"],
+["0026","かれいの煮つけ"],
+["0027","きのこの佃煮"],
+["0028","キャベツの丸ごとスープ煮"],
+["0029","牛すじの煮こみ"],
+["0030","牛肉のしぐれ煮"],
+["0032","具だくさんみそ汁"],
+["0034","グリーンカレー"],
+["0035","けんちん汁"],
+["0036","コーンスープ"],
+["0037","小松菜とツナの煮物"],
+["0038","五目豆"],
+["0039","こんにゃくの甘辛煮"],
+["0040","昆布豆"],
+["0041","さつまいものポタージュ"],
+["0042","さばのみそ煮"],
+["0043","参鶏湯(サムゲタン)"],
+["0044","さんまの骨までやわらか煮(トマト風味)"],
+["0045","しょうがのサッと煮"],
+["0046","スペアリブの煮こみ"],
+["0047","たいのあら炊き"],
+["0048","たこと里いもの煮物"],
+["0049","玉ねぎの丸ごとスープ煮"],
+["0050","チリコンカン"],
+["0051","デミグラス風ソース"],
+["0052","トマトリゾット"],
+["0054","ドライカレー"],
+["0055","鶏とカシューナッツの炒め煮"],
+["0056","鶏と大根の煮物"],
+["0057","鶏とブロッコリーのオイスター炒め"],
+["0058","酸辣湯(サンラータン)"],
+["0059","バーニャカウダソース"],
+["0060","白菜と豚バラの重ね煮"],
+["0061","白菜のクリーム煮"],
+["0062","パプリカとズッキーニのあえ物"],
+["0063","ビーフカレー"],
+["0064","ビーフストロガノフ"],
+["0065","ピーマンのじゃこあえ"],
+["0067","豚肉のトマト煮こみ"],
+["0068","豚の角煮"],
+["0069","プチトマトのさっぱり煮"],
+["0070","ぶり大根"],
+["0071","ぶりの酢煮"],
+["0072","ふろふき大根"],
+["0073","回鍋肉(ホイコーロー)"],
+["0074","ポークビーンズ"],
+["0075","骨付き鶏もも肉のタンドリー煮"],
+["0076","ボルシチ"],
+["0077","ホワイトソース"],
+["0078","麻婆なす"],
+["0079","ミートソース"],
+["0080","野菜スープ"],
+["0081","野菜たっぷりスープ春雨"],
+["0082","ラタトゥイユ"],
+["0083","ロールキャベツ"],
+["0084","アスパラガス(ゆで)"],
+["0086","いも・かぼちゃ(ゆで)"],
+["0088","カレーうどん"],
+["0089","シーフードのクリームパスタ"],
+["0091","スープパスタ"],
+["0092","せいろ蒸し"],
+["0095","ゆで卵"],
+["0097","ちゃんぽん"],
+["0100","ナポリタン風パスタ"],
+["0102","ブロッコリー(ゆで)"],
+["0103","ほうれん草・小松菜(ゆで)"],
+["0105","煮こみうどん"],
+["0106","あずきの甘酒"],
+["0107","甘酒"],
+["0109","カスタードクリーム"],
+["0111","小⻨パン"],
+["0112","雑穀の甘酒"],
+["0113","さつまいもの甘酒"],
+["0114","塩麹"],
+["0115","シナモンロール"],
+["0116","ジャム(いちご)"],
+["0117","ジャム(オレンジ)"],
+["0118","ジャム(キウイ)"],
+["0120","スポンジケーキ"],
+["0121","だし"],
+["0122","つぶあん"],
+["0123","手作り豆腐"],
+["0125","にんじんとりんごの甘酒"],
+["0127","ブラウニー"],
+["0128","野菜ジュースのケーキ"],
+["0129","ヨーグルト"],
+["0130","りんごのコンポート"],
+["0139","ごはん"],
+["0217","えびとセロリのうま煮"],
+["0241","蒸し野菜"],
+["0253","蒸し豆"],
+["0262","飲茶セット"],
+["0263","イタリアンセット"],
+["0265","酒の肴セット"],
+["0266","どんぶりの具&冷凍ごはん(牛どん)"],
+["0278","ローストビーフ"],
+["0279","ローストポーク"],
+["0280","サラダチキン"],
+["0281","ツナ"],
+["0283","オープンオムレツ"],
+["0284","じゃがいものガレット"],
+["0289","にんじん(ゆで)"],
+["0290","ごはん(2合)&おかず"],
+["0342","玄米ごはん"],
+["0387","ポテトサラダ(ゆで〜つぶし)"],
+["0388","ポテトコロッケの具"],
+["0389","かぼちゃコロッケの具"],
+["0392","オープンオムレツ(材料まぜ〜焼き上げ)"],
+["0520","ごはん(無洗米)"],
+["0521","ごはん(早炊き)"],
+["0522","ごはん(ふっくら)"],
+["0523","ごはん(しゃっきり)"],
+["0524","赤飯"],
+["0525","炊きこみごはん"],
+["0527","チンジャオロースー"],
+["0528","牛肉と大根のピリ辛炒め"],
+["0529","牛肉と糸こんにゃくの甘辛煮"],
+["0530","牛肉と水菜の煮物"],
+["0531","さば缶のみぞれ煮"],
+["0532","鶏肉ときくらげのとろみ煮"],
+["0533","厚揚げの肉みそあえ"],
+["0534","ウインナーとキャベツの炒め物"],
+["0535","ウインナーと冷凍ポテトのマスタード炒め"],
+["0536","たことズッキーニのバター炒め"],
+["0537","いかのトマト煮"],
+["0538","えびのチリソース"],
+["0539","さば缶のキムチ炒め"],
+["0540","野菜のカレー炒め"],
+["0541","貝柱とブロッコリーの炒め物"],
+["0542","にんじんのたらこ炒め"],
+["0543","ちくわとピーマンのおかかあえ"],
+["0544","もやしとツナのポン酢炒め"],
+["0545","さつま揚げと豆苗のサッと煮"],
+["0546","チャプチェ"]
+];
+
+/* アプリのレシピ → 料理設定番号（同じ料理に仕上がるものだけ対応付け） */
+const HC_OF={"肉じゃが":"0001","筑前煮":"0002","かぼちゃの煮物":"0003","里いもの煮っころがし":"0004","豚バラ大根":"0005","八宝菜":"0006","クリームシチュー":"0009","おでん":"0012","ひじきの煮物":"0014","きんぴらごぼう":"0015","いわしの梅煮":"0022","かぼちゃのポタージュ":"0025","けんちん汁":"0035","コーンスープ":"0036","さばの味噌煮":"0042","鶏肉と大根の煮物":"0056","白菜と豚バラのミルフィーユ鍋":"0060","豚の角煮":"0068","ぶり大根":"0070","回鍋肉":"0073","麻婆茄子":"0078","ミートソースパスタ":"0079","ロールキャベツ":"0083","カレーうどん":"0088","ちゃんぽん":"0097","ナポリタン":"0100","ポテトサラダ":"0387","青椒肉絲":"0527"};
 
 /* ==========================================================
    分量と作り方  [材料(/区切り), 手順1, 手順2, ...]  すべて2人分
@@ -1120,7 +1299,7 @@ const KEY = "kondate-v1";
 const DEF = {
   custom:[], hidden:[], fav:[], members:[], history:[],
   avoidDays:14, useSeason:true, fridge:[], week:null, shopDone:[], planDays:7,
-  todayPlan:null, opts:{maxTime:0, genre:"", oneDish:true, easy:false, bento:false, split:false}
+  todayPlan:null, opts:{maxTime:0, genre:"", oneDish:true, easy:false, bento:false, split:false, hotcook:false}
 };
 let S = load();
 
@@ -1154,12 +1333,14 @@ function buildRecipes(){
     ing:r[4].split(",").map(s=>s.trim()).filter(Boolean), season:r[5], own:false,
     steps: STEPS_OVERRIDE[r[0]] ?? autoSteps(r[3]),
     bento: BENTO.has(r[0]),
-    kids: KIDS[r[0]] || ""
+    kids: KIDS[r[0]] || "",
+    hc: HC_OF[r[0]] || ""
   })).concat(S.custom.map(r=>({
     ...r, own:true,
     steps: r.steps || autoSteps(r.time),
     bento: !!r.bento,
-    kids: r.kids || ""
+    kids: r.kids || "",
+    hc: r.hc || ""
   }))).filter(r=>!S.hidden.includes(r.id));
 }
 buildRecipes();
@@ -1243,14 +1424,16 @@ function pool(cat, opt={}){
     if(opt.easy && r.steps>2) return false;
     if(opt.bento && !r.bento) return false;
     if(opt.split && !r.kids) return false;
+    if(opt.hotcook && !r.hc) return false;
     return true;
   });
 }
-/* 条件は枠ごとに効かせる（ジャンルや弁当条件を汁物にまで求めない） */
+/* 条件は枠ごとに効かせる（ジャンルや弁当条件を汁物にまで求めない）
+   ホットクックは鍋が1つなので、主菜だけに効かせる。副菜と汁物は普通に作る前提 */
 function slotOpts(cat){
   const o=S.opts;
   const b={maxTime:o.maxTime, easy:o.easy};
-  if(cat==="主菜"||cat==="麺・丼"){ b.genre=o.genre; b.bento=o.bento; b.split=o.split; }
+  if(cat==="主菜"||cat==="麺・丼"){ b.genre=o.genre; b.bento=o.bento; b.split=o.split; b.hotcook=o.hotcook; }
   if(cat==="副菜"){ b.bento=o.bento; }
   return b;
 }
@@ -1387,6 +1570,7 @@ function renderToday(){
     `<button class="chip ${o.maxTime?"on":""}" data-o="time">⏱ 20分以内</button>`+
     `<button class="chip ${o.bento?"on":""}" data-o="bento">🍱 弁当OK</button>`+
     `<button class="chip ${o.split?"on":""}" data-o="split">👶 取り分け</button>`+
+    `<button class="chip ${o.hotcook?"on":""}" data-o="hc">🍲 ホットクック</button>`+
     GENRES.map(g=>`<button class="chip ${o.genre===g?"on":""}" data-o="g" data-v="${g}">${g}食</button>`).join("")+
     `<button class="chip ${o.oneDish?"on":""}" data-o="one">丼･麺OK</button>`;
 
@@ -1402,7 +1586,7 @@ function renderToday(){
       return `<div class="slot">
         <div class="badge">${s.label}</div>
         <div class="body tapme" data-det="${r.id}">
-          <div class="nm">${esc(r.name)}${r.bento?' <span class="tag b">🍱弁当OK</span>':""} <span class="pill">作り方 ›</span></div>
+          <div class="nm">${esc(r.name)}${r.hc?`<span class="tag b">🍲${r.hc}</span>`:""}${r.bento?' <span class="tag b">🍱弁当OK</span>':""} <span class="pill">作り方 ›</span></div>
           <div class="meta">${r.genre}食 ・ ${r.time}分 ・ 工程${r.steps}${r.season?" ・ 旬:"+r.season:""}${lm?" ・ 前回 "+daysAgo(lm)+"日前":" ・ 初めて"}</div>
           <div class="ing">${r.ing.map(esc).join("・")}</div>
           ${r.kids?`<div class="kids">👶 <b>取り分け</b> ${esc(r.kids)}</div>`:""}
@@ -1525,10 +1709,39 @@ function renderFridge(){
 /* ==========================================================
    描画：レシピ
    ========================================================== */
+const HC_TAB="🍲ホットクック";
+
+/* ホットクックの自動調理メニュー一覧（料理設定番号つき） */
+function renderHotcook(){
+  const q=rcQ.trim();
+  const byName={}; RECIPES.forEach(r=>{ if(r.hc) byName[r.hc]=r; });
+  const list=HOTCOOK.filter(([no,name])=> !q || name.includes(q) || no.includes(q) || no.replace(/^0+/,"").includes(q));
+  const withRecipe=list.filter(([no])=>byName[no]).length;
+  $("#rcList").innerHTML =
+    `<div class="card flat"><div class="hint">
+      シャープ ヘルシオ ホットクック <b>KN-HW24H</b> の自動調理メニュー ${HOTCOOK.length}件です。
+      本体で <b>メニューを選ぶ → メニュー番号で探す</b> と進み、この番号を入れるとその調理が始まります。<br>
+      <b>作り方あり</b>の付いたものはこのアプリに分量と手順が入っています。タップすると開きます。
+    </div></div>
+    <div class="hint" style="margin-bottom:8px">${list.length}件${q?"（検索中）":""} ・ うち作り方あり ${withRecipe}件</div>
+    <div class="card">` +
+    (list.length? list.map(([no,name])=>{
+      const r=byName[no];
+      return `<div class="item ${r?"tapme":""}" ${r?`data-det="${r.id}"`:""}>
+        <div class="hcno">${no}</div>
+        <div class="grow">
+          <div class="nm">${esc(name)}${r?'<span class="tag k">作り方あり</span>':""}</div>
+          ${r&&r.name!==name?`<div class="meta">このアプリでは「${esc(r.name)}」</div>`:""}
+        </div>
+      </div>`;
+    }).join("") : `<div class="empty">該当なし</div>`) + `</div>`;
+}
+
 let rcTab="すべて", rcQ="";
 function renderRecipes(){
-  const tabs=["すべて","お気に入り","🍱弁当OK","👶取り分け","🔪工程少なめ",...CATS,"自分のレシピ"];
+  const tabs=["すべて","お気に入り",HC_TAB,"🍱弁当OK","👶取り分け","🔪工程少なめ",...CATS,"自分のレシピ"];
   $("#rcTabs").innerHTML = tabs.map(t=>`<button class="chip ${rcTab===t?"on":""}" data-rt="${t}">${t}</button>`).join("");
+  if(rcTab===HC_TAB){ renderHotcook(); return; }
   const q=rcQ.trim();
   let list = RECIPES.filter(r=>{
     if(rcTab==="お気に入り" && !S.fav.includes(r.id)) return false;
@@ -1549,7 +1762,7 @@ function renderRecipes(){
     return `<div class="item">
       <button class="fav ${S.fav.includes(r.id)?"on":""}" data-fv="${r.id}">♥</button>
       <div class="grow tapme" data-det="${r.id}">
-        <div class="nm">${esc(r.name)} ${r.own?'<span class="pill">自作</span>':""}${r.bento?'<span class="tag b">🍱</span>':""}${r.kids?'<span class="tag k">👶</span>':""}</div>
+        <div class="nm">${esc(r.name)} ${r.own?'<span class="pill">自作</span>':""}${r.bento?'<span class="tag b">🍱</span>':""}${r.kids?'<span class="tag k">👶</span>':""}${r.hc?`<span class="tag b">🍲${r.hc}</span>`:""}</div>
         <div class="meta">${r.cat}・${r.genre}食・${r.time}分・工程${r.steps}${r.season?"・旬:"+r.season:""}${ar?"・★"+ar.toFixed(1):""}</div>
         <div class="meta">${r.ing.map(i=>ng.has(i)?`<span style="color:var(--ng);font-weight:700">${esc(i)}</span>`:esc(i)).join("・")}</div>
         ${r.kids?`<div class="kids">👶 <b>取り分け</b> ${esc(r.kids)}</div>`:""}
@@ -1641,7 +1854,13 @@ function openDetail(id){
                 : {amount:[], steps:[]}; })();
 
   // 材料が多いと作り方が画面の下に隠れるので、見出しから飛べるようにする
-  let html = `<div class="dt-h dt-hrow">材料（2人分）<button class="jump" data-jump="1">作り方へ ▼</button></div>`;
+  let html = "";
+  if(r.hc){
+    const official=(HOTCOOK.find(h=>h[0]===r.hc)||[])[1]||"";
+    html += `<div class="hcbadge">🍲<div>ホットクックの料理設定番号 <b>${r.hc}</b><br>
+      <span>メニューを選ぶ → メニュー番号で探す${official&&official!==r.name?`／本体の表示は「${esc(official)}」`:""}</span></div></div>`;
+  }
+  html += `<div class="dt-h dt-hrow">材料（2人分）<button class="jump" data-jump="1">作り方へ ▼</button></div>`;
   if(d.amount.length){
     html += `<div class="dt-ing">` + d.amount.map(a=>{
       // 「はちみつ 大さじ2」は空白で、「鶏もも肉2枚」は数字の手前で分ける
@@ -1719,6 +1938,7 @@ function openRecipe(id){
   $("#rfSteps").value = r? String(r.steps||2):"2";
   $("#rfBento").checked = r? !!r.bento:false;
   $("#rfKids").value = r? (r.kids||""):"";
+  $("#rfHc").value = r? (r.hc||""):"";
   $("#rfAmount").value = r? (r.amount||""):"";
   $("#rfHowto").value = r? (r.howto||""):"";
   $("#dlgRecipe").showModal();
@@ -1735,6 +1955,7 @@ function saveRecipe(){
     steps:parseInt($("#rfSteps").value)||2,
     bento:$("#rfBento").checked,
     kids:$("#rfKids").value.trim(),
+    hc:$("#rfHc").value.trim(),
     amount:$("#rfAmount").value.trim(),
     howto:$("#rfHowto").value.trim()
   };
@@ -1788,6 +2009,7 @@ document.addEventListener("click", e=>{
     if(t.dataset.o==="easy") o.easy = !o.easy;
     if(t.dataset.o==="bento") o.bento = !o.bento;
     if(t.dataset.o==="split") o.split = !o.split;
+    if(t.dataset.o==="hc") o.hotcook = !o.hotcook;
     if(t.dataset.o==="g") o.genre = o.genre===t.dataset.v? "":t.dataset.v;
     save(); renderToday(); return;
   }
