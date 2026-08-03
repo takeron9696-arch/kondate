@@ -232,7 +232,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="empty">下のボタンで今日の献立を決めます</div>
   </div>
   <div class="row" style="gap:8px;margin-bottom:12px">
-    <button class="btn sub" id="btnUndo" style="display:none;width:auto;flex:0 0 auto;padding:13px 15px">↩ 戻る</button>
+    <button class="btn sub" id="btnUndo" style="width:auto;flex:0 0 auto;padding:13px 15px" disabled>↩ 戻る</button>
     <button class="btn" id="btnGen">🎲 献立を決める</button>
   </div>
   <div class="row" style="gap:8px" id="todayActions"></div>
@@ -2342,10 +2342,10 @@ function renderToday(){
       `<button class="btn sub" id="btnMore">＋もう一品</button>
        <button class="btn" id="btnMade">✓ これで作った</button>`;
   }
-  // 戻るボタンは、戻れる献立があるときだけ出す
+  // 戻るボタンは常に出す。戻れないときは押せない状態にする（隠すと見つけられない）
   const n=(S.undo||[]).length;
   const ub=$("#btnUndo");
-  ub.style.display = n ? "inline-flex" : "none";
+  ub.disabled = !n;
   ub.textContent = n>1 ? `↩ 戻る(${n})` : "↩ 戻る";
 
   // 注意（全員NGで候補が細い等）
