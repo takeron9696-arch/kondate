@@ -131,7 +131,7 @@ nav button.on{color:var(--accent)}
 .warn{background:var(--accent-w);color:var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:12px}
 .match{font-size:11.5px;font-weight:700;color:var(--ok)}
 .miss{font-size:12px;color:var(--tx2)}
-.pill{font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--tx2);font-weight:600}
+.pill{font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:var(--tx2);font-weight:600;white-space:nowrap;display:inline-block}
 .tag{font-size:10.5px;font-weight:700;border-radius:5px;padding:2px 5px;vertical-align:2px;white-space:nowrap;margin-left:4px;display:inline-block}
 .tag.b{background:#fde68a;color:#7c2d12}
 .tag.k{background:#bbf7d0;color:#14532d}
@@ -232,6 +232,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     <div class="empty">下のボタンで今日の献立を決めます</div>
   </div>
   <div class="row" style="gap:8px;margin-bottom:12px">
+    <button class="btn sub" id="btnUndo" style="display:none;width:auto;flex:0 0 auto;padding:13px 15px">↩ 戻る</button>
     <button class="btn" id="btnGen">🎲 献立を決める</button>
   </div>
   <div class="row" style="gap:8px" id="todayActions"></div>
@@ -1979,7 +1980,7 @@ const KEY = "kondate-v1";
 const DEF = {
   custom:[], hidden:[], fav:[], members:[], history:[], reviews:{}, reviewsMigrated:false,
   avoidDays:14, useSeason:true, fridge:[], week:null, shopDone:[], planDays:7,
-  todayPlan:null, opts:{maxTime:0, genre:"", oneDish:true, easy:false, bento:false, split:false, hotcook:false}
+  todayPlan:null, undo:[], opts:{maxTime:0, genre:"", oneDish:true, easy:false, bento:false, split:false, hotcook:false}
 };
 let S = load();
 
@@ -2202,7 +2203,25 @@ function pick(cat, opt={}, exclude=[]){
   return list[list.length-1];
 }
 
+/* ==========================================================
+   ひとつ前の献立に戻す
+   サイコロ・引き直し・差し替えの直前を積んでおく（最大10件）
+   ========================================================== */
+function pushUndo(){
+  if(!S.todayPlan || !S.todayPlan.slots.length) return;
+  S.undo = S.undo || [];
+  S.undo.push(JSON.parse(JSON.stringify(S.todayPlan)));
+  if(S.undo.length > 10) S.undo.shift();
+}
+function undoPlan(){
+  if(!S.undo || !S.undo.length){ toast("戻れる献立がありません"); return; }
+  S.todayPlan = S.undo.pop();
+  save(); renderToday();
+  toast(S.undo.length ? `前の献立に戻しました（あと${S.undo.length}回戻れます）` : "前の献立に戻しました");
+}
+
 function genToday(){
+  pushUndo();
   const o = S.opts;
   const oneDish = o.oneDish && !o.bento && Math.random()<0.3;
   const plan = {date:today(), slots:[]};
@@ -2224,6 +2243,7 @@ function genToday(){
 }
 function reroll(idx){
   const p = S.todayPlan; if(!p) return;
+  pushUndo();
   const slot = p.slots[idx];
   const cat = slot.label==="主食" ? "麺・丼" : slot.label;
   const r = pick(cat, slotOpts(cat), p.slots.map(s=>s.id));
@@ -2231,6 +2251,7 @@ function reroll(idx){
   slot.id = r.id; save(); renderToday();
 }
 function addSlot(cat,label){
+  pushUndo();
   if(!S.todayPlan) S.todayPlan={date:today(),slots:[]};
   const r = pick(cat,slotOpts(cat),S.todayPlan.slots.map(s=>s.id));
   if(!r){ toast("候補がありません"); return; }
@@ -2321,6 +2342,12 @@ function renderToday(){
       `<button class="btn sub" id="btnMore">＋もう一品</button>
        <button class="btn" id="btnMade">✓ これで作った</button>`;
   }
+  // 戻るボタンは、戻れる献立があるときだけ出す
+  const n=(S.undo||[]).length;
+  const ub=$("#btnUndo");
+  ub.style.display = n ? "inline-flex" : "none";
+  ub.textContent = n>1 ? `↩ 戻る(${n})` : "↩ 戻る";
+
   // 注意（全員NGで候補が細い等）
   const cnt = pool("主菜",{}).length;
   $("#todayWarn").innerHTML = cnt<8
@@ -2781,6 +2808,7 @@ document.addEventListener("click", e=>{
   if(t.id==="dtClose"){ $("#dlgDetail").close(); return; }
   if(t.id==="dtUse"){
     const r=byId(detailId); if(!r) return;
+    pushUndo();
     if(!S.todayPlan) S.todayPlan={date:today(),slots:[]};
     const label = r.cat==="麺・丼"?"主食":r.cat;
     S.todayPlan.slots = S.todayPlan.slots.filter(s=>s.label!==label);
@@ -2817,6 +2845,7 @@ document.addEventListener("click", e=>{
     m.here = m.here===false; save(); renderToday(); return;
   }
   if(t.id==="btnGen"){ genToday(); return; }
+  if(t.id==="btnUndo"){ undoPlan(); return; }
   if(t.id==="btnMade"){
     const p=S.todayPlan; if(!p) return;
     const ids=p.slots.map(s=>s.id);
@@ -2860,6 +2889,7 @@ document.addEventListener("click", e=>{
   if(t.id==="fridgeClear"){ S.fridge=[]; save(); renderFridge(); return; }
   if(t.dataset.fadd){
     const r=byId(t.dataset.fadd);
+    pushUndo();
     if(!S.todayPlan) S.todayPlan={date:today(),slots:[]};
     const label = r.cat==="麺・丼"?"主食":r.cat;
     S.todayPlan.slots = S.todayPlan.slots.filter(s=>s.label!==label);
